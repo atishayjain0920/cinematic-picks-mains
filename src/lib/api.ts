@@ -54,14 +54,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export async function signUp(name: string, email: string, password: string) {
-  return request<{ token: string; user: UserProfile }>("/auth/signup", {
+  return request<{ token: string; user: UserProfile }>("/api/auth/signup", {
     method: "POST",
     body: JSON.stringify({ name, email, password }),
   });
 }
 
 export async function signIn(email: string, password: string) {
-  return request<{ token: string; user: UserProfile }>("/auth/signin", {
+  return request<{ token: string; user: UserProfile }>("/api/auth/signin", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
