@@ -76,14 +76,14 @@ export async function getFavorites() {
 }
 
 export async function addFavorite(item: UserMediaItem) {
-  return request<UserMediaItem[]>("/user/favorites", {
+  return request<UserMediaItem[]>("/api/user/favorites", {
     method: "POST",
     body: JSON.stringify(item),
   });
 }
 
 export async function removeFavorite(tmdbId: number, mediaType: "movie" | "tv") {
-  return request<UserMediaItem[]>(`/user/favorites/${mediaType}/${tmdbId}`, {
+  return request<UserMediaItem[]>(`/api/user/favorites/${mediaType}/${tmdbId}`, {
     method: "DELETE",
   });
 }
@@ -93,14 +93,14 @@ export async function getHistory() {
 }
 
 export async function addHistory(item: UserMediaItem) {
-  return request<UserMediaItem[]>("/user/history", {
+  return request<UserMediaItem[]>("/api/user/history", {
     method: "POST",
     body: JSON.stringify(item),
   });
 }
 
 export async function updateSettings(payload: Partial<UserSettings> & { name?: string }) {
-  return request<UserProfile>("/user/settings", {
+  return request<UserProfile>("/api/user/settings", {
     method: "PUT",
     body: JSON.stringify(payload),
   });
