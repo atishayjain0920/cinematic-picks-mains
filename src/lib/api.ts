@@ -68,11 +68,11 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function getMe() {
-  return request<UserProfile>("/user/me");
+  return request<UserProfile>("/api/user/me");
 }
 
 export async function getFavorites() {
-  return request<UserMediaItem[]>("/user/favorites");
+  return request<UserMediaItem[]>("/api/user/favorites");
 }
 
 export async function addFavorite(item: UserMediaItem) {
@@ -89,7 +89,7 @@ export async function removeFavorite(tmdbId: number, mediaType: "movie" | "tv") 
 }
 
 export async function getHistory() {
-  return request<UserMediaItem[]>("/user/history");
+  return request<UserMediaItem[]>("/api/user/history");
 }
 
 export async function addHistory(item: UserMediaItem) {
