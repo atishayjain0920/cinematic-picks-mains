@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Film, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import AnimatedBackground from "@/components/AnimatedBackground";
-import { signIn } from "@/lib/api";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
+import { signIn, signInWithGoogle } from "@/lib/api";
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -13,6 +14,12 @@ const SignIn = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const saveSession = useCallback((token: string, user: { name: string; email: string }) => {
+    localStorage.setItem("movieflix_token", token);
+    localStorage.setItem("movieflix_user", user.name);
+    localStorage.setItem("movieflix_email", user.email);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +33,7 @@ const SignIn = () => {
     
     try {
       const { token, user } = await signIn(email, password);
-      localStorage.setItem("movieflix_token", token);
-      localStorage.setItem("movieflix_user", user.name);
-      localStorage.setItem("movieflix_email", user.email);
+      saveSession(token, user);
       toast.success("Welcome back!");
       navigate("/home");
     } catch (error) {
@@ -37,6 +42,24 @@ const SignIn = () => {
       setIsLoading(false);
     }
   };
+
+  const handleGoogleCredential = useCallback(
+    async (credential: string) => {
+      setIsLoading(true);
+
+      try {
+        const { token, user } = await signInWithGoogle(credential);
+        saveSession(token, user);
+        toast.success("Welcome back!");
+        navigate("/home");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to sign in with Google");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [navigate, saveSession]
+  );
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center">
@@ -133,8 +156,14 @@ const SignIn = () => {
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
+          <GoogleAuthButton
+            text="signin_with"
+            isLoading={isLoading}
+            onCredential={handleGoogleCredential}
+          />
+
           {/* Sign up link */}
-          <p className="text-center text-muted-foreground">
+          <p className="text-center text-muted-foreground mt-6">
             Don't have an account?{" "}
             <Link
               to="/signup"

@@ -22,6 +22,55 @@ function signToken(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET || 'dev-secret-change-me', { expiresIn: '7d' });
 }
 
+async function verifyGoogleCredential(credential) {
+  if (!credential) {
+    throw new Error('Google credential is required');
+  }
+
+  const response = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`
+  );
+
+  if (!response.ok) {
+    throw new Error('Invalid Google credential');
+  }
+
+  const profile = await response.json();
+  const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
+
+  if (googleClientId && profile.aud !== googleClientId) {
+    throw new Error('Google credential audience does not match this app');
+  }
+
+  if (profile.email_verified !== 'true' && profile.email_verified !== true) {
+    throw new Error('Google email is not verified');
+  }
+
+  return profile;
+}
+
+function tokenExpiresAt() {
+  return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+}
+
+async function saveAuthEvent(user, action, token, req) {
+  user.authEvents.unshift({
+    action,
+    token,
+    tokenExpiresAt: tokenExpiresAt(),
+    userAgent: req.get('user-agent') || null,
+    ipAddress: req.ip || null,
+  });
+
+  user.authEvents = user.authEvents.slice(0, 50);
+
+  if (action === 'signin' || action === 'google') {
+    user.lastLoginAt = new Date();
+  }
+
+  await user.save();
+}
+
 function userPayload(user) {
   return {
     id: user._id,
@@ -50,9 +99,11 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, passwordHash });
+    const token = signToken(user._id.toString());
+    await saveAuthEvent(user, 'signup', token, req);
 
     return res.status(201).json({
-      token: signToken(user._id.toString()),
+      token,
       user: userPayload(user),
     });
   } catch (error) {
@@ -73,17 +124,64 @@ app.post('/api/auth/signin', async (req, res) => {
       return res.status(401).json({ message: 'invalid credentials' });
     }
 
+    if (!user.passwordHash) {
+      return res.status(401).json({ message: 'please sign in with Google' });
+    }
+
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
       return res.status(401).json({ message: 'invalid credentials' });
     }
 
+    const token = signToken(user._id.toString());
+    await saveAuthEvent(user, 'signin', token, req);
+
     return res.json({
-      token: signToken(user._id.toString()),
+      token,
       user: userPayload(user),
     });
   } catch (error) {
     return res.status(500).json({ message: 'failed to signin', error: error.message });
+  }
+});
+
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const profile = await verifyGoogleCredential(req.body.credential);
+    const email = profile.email.toLowerCase();
+
+    let user = await User.findOne({
+      $or: [{ googleId: profile.sub }, { email }],
+    });
+
+    if (!user) {
+      user = await User.create({
+        name: profile.name || email.split('@')[0],
+        email,
+        authProvider: 'google',
+        googleId: profile.sub,
+        avatarUrl: profile.picture || null,
+        emailVerified: true,
+      });
+    } else {
+      user.name = user.name || profile.name || email.split('@')[0];
+      user.googleId = user.googleId || profile.sub;
+      user.avatarUrl = profile.picture || user.avatarUrl;
+      user.emailVerified = true;
+      if (!user.passwordHash) {
+        user.authProvider = 'google';
+      }
+    }
+
+    const token = signToken(user._id.toString());
+    await saveAuthEvent(user, 'google', token, req);
+
+    return res.json({
+      token,
+      user: userPayload(user),
+    });
+  } catch (error) {
+    return res.status(401).json({ message: error.message || 'failed to sign in with Google' });
   }
 });
 
