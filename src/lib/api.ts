@@ -19,7 +19,7 @@ export interface UserMediaItem {
   watchedAt?: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://movieflix-hdhx.onrender.com";
 
 function getToken() {
   return localStorage.getItem("movieflix_token");
@@ -54,14 +54,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export async function signUp(name: string, email: string, password: string) {
-  return request<{ token: string; user: UserProfile }>("/auth/signup", {
+  return request<{ token: string; user: UserProfile }>("/api/auth/signup", {
     method: "POST",
     body: JSON.stringify({ name, email, password }),
   });
 }
 
 export async function signIn(email: string, password: string) {
-  return request<{ token: string; user: UserProfile }>("/auth/signin", {
+  return request<{ token: string; user: UserProfile }>("/api/auth/signin", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
@@ -75,39 +75,39 @@ export async function signInWithGoogle(credential: string) {
 }
 
 export async function getMe() {
-  return request<UserProfile>("/user/me");
+  return request<UserProfile>("/api/user/me");
 }
 
 export async function getFavorites() {
-  return request<UserMediaItem[]>("/user/favorites");
+  return request<UserMediaItem[]>("/api/user/favorites");
 }
 
 export async function addFavorite(item: UserMediaItem) {
-  return request<UserMediaItem[]>("/user/favorites", {
+  return request<UserMediaItem[]>("/api/user/favorites", {
     method: "POST",
     body: JSON.stringify(item),
   });
 }
 
 export async function removeFavorite(tmdbId: number, mediaType: "movie" | "tv") {
-  return request<UserMediaItem[]>(`/user/favorites/${mediaType}/${tmdbId}`, {
+  return request<UserMediaItem[]>(`/api/user/favorites/${mediaType}/${tmdbId}`, {
     method: "DELETE",
   });
 }
 
 export async function getHistory() {
-  return request<UserMediaItem[]>("/user/history");
+  return request<UserMediaItem[]>("/api/user/history");
 }
 
 export async function addHistory(item: UserMediaItem) {
-  return request<UserMediaItem[]>("/user/history", {
+  return request<UserMediaItem[]>("/api/user/history", {
     method: "POST",
     body: JSON.stringify(item),
   });
 }
 
 export async function updateSettings(payload: Partial<UserSettings> & { name?: string }) {
-  return request<UserProfile>("/user/settings", {
+  return request<UserProfile>("/api/user/settings", {
     method: "PUT",
     body: JSON.stringify(payload),
   });
