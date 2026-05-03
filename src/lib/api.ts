@@ -68,7 +68,7 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signInWithGoogle(credential: string) {
-  return request<{ token: string; user: UserProfile }>("/auth/google", {
+  return request<{ token: string; user: UserProfile }>("/api/auth/google", {
     method: "POST",
     body: JSON.stringify({ credential }),
   });
